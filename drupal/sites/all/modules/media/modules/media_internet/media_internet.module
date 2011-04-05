@@ -1,5 +1,4 @@
 <?php
-//$Id: media_internet.module,v 1.8 2010/11/29 20:03:11 JacobSingh Exp $
 
 /**
  * Implements hook_media_browser_plugin_info().
@@ -343,14 +342,14 @@ abstract class MediaInternetBaseHandler {
    * 
    * @param $file_obj;
    */
-  public function postSave($file_obj) {
+  public function postSave(&$file_obj) {
     
   }
   
   /**
    * Before the file has been saved, implementors may do additional operations.
    */
-  public function preSave($file_obj) {
+  public function preSave(&$file_obj) {
     
   }
 }

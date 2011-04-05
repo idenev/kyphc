@@ -1,5 +1,4 @@
 <?php
-// $Id: media.admin.inc,v 1.26 2011/01/15 00:21:15 effulgentsia Exp $
 
 /**
  * @file
@@ -31,7 +30,7 @@ function media_admin($form, $form_state) {
   }
 
   require_once dirname(__FILE__) . '/media.browser.inc';
-  media_include_browser_js();
+  media_attach_browser_js($form);
   
   $types = media_display_types();
 
@@ -162,7 +161,7 @@ function media_admin_thumbnails() {
   $query->entityCondition('entity_type', 'media');
   
   $result = $query->execute();
-  $ids = array_keys($result['media']);
+  $ids = key_exists('media', $result) ? array_keys($result['media']) : FALSE;
   if ($ids) {
     $media_entities = entity_load('media', $ids);
   }
@@ -444,10 +443,8 @@ function media_admin_type_manage_form_submit($form, &$form_state) {
 
 /**
  * Form callback for mass import.
- *
  */
 function media_import($form, &$form_state) {
-
   if (!isset($form_state['storage']['files'])) {
     $form_state['storage']['step'] = 'choose';
     $form_state['storage']['next_step'] = 'preview';
@@ -479,8 +476,11 @@ function media_import($form, &$form_state) {
 
 }
 
+/**
+ * Validate handler for media_import().
+ */
 function media_import_validate($form, &$form_state) {
-  if ($form_state['values']['op'] != 'Confirm') {
+  if ($form_state['values']['op'] != t('Confirm')) {
     $directory = $form_state['values']['directory'];
     $pattern = $form_state['values']['pattern'];
     if (!is_dir($directory)) {
@@ -496,7 +496,7 @@ function media_import_validate($form, &$form_state) {
 }
 
 /**
- * Submit handler for media_import()
+ * Submit handler for media_import().
  */
 function media_import_submit($form, &$form_state) {
   if ($form_state['values']['op'] == 'Confirm') {
@@ -516,6 +516,9 @@ function media_import_submit($form, &$form_state) {
   $form_state['rebuild'] = TRUE;
 }
 
+/**
+ * BatchAPI callback op for media import.
+ */
 function media_import_batch_import_files($files, &$context) {
   if (!isset($context['sandbox']['files'])) {
     // This runs the first time the batch runs.
@@ -552,6 +555,9 @@ function media_import_batch_import_files($files, &$context) {
 
 }
 
+/**
+ * BatchAPI complete callback for media import.
+ */
 function media_import_batch_import_complete($success, $results, $operations) {
   if ($results['errors']) {
     drupal_set_message(theme('item_list', array('items' => $results['errors'])), 'error');
@@ -559,4 +565,95 @@ function media_import_batch_import_complete($success, $results, $operations) {
   if ($results['success']) {
     drupal_set_message(theme('item_list', array('items' => $results['success'])));
   }
+}
+
+/**
+ * Admin configruation form for media browser settings.
+ */
+function media_admin_config_browser($form, &$form_state) {
+  $theme_options = array();
+  $theme_options[NULL] = 'Default administration theme';
+  foreach (list_themes() as $key => $theme) {
+    if ($theme->status) {
+      $theme_options[$key] = $theme->info['name'];
+    }
+  }
+
+  $form[media_variable_name('dialog_theme')] = array(
+    '#type' => 'select',
+    '#title' => t('Media browser theme'),
+    '#options' => $theme_options,
+    '#description' => t("This theme will be used for all media related dialogs.  It can be different from your site's theme because many site themes do not work well in the small windows which media uses."),
+    '#default_value' => media_variable_get('dialog_theme'),
+  );
+
+  $form[media_variable_name('file_extensions')] = array(
+    '#type' => 'textfield',
+    '#title' => 'Allowed file extensions',
+    '#default_value' => media_variable_get('file_extensions'),
+    '#description' => t('File extensions which are accepted in the media browser.  Use spaces to separate (e.g. "jpg gif pdf doc"). <br/><em>Note that this can be overriden on a per-field basis when creating multimedia asset fields and files of certain extensions cannot be embedded at this time.</em>'),
+  );
+
+  $form['#submit'][] = 'media_admin_config_browser_pre_submit';
+  return system_settings_form($form);
+}
+
+function media_admin_config_browser_pre_submit(&$form, &$form_state) {
+  if (!$form_state['values'][media_variable_name('dialog_theme')]) {
+    media_variable_del('dialog_theme');
+    unset($form_state['values'][media_variable_name('dialog_theme')]);
+  }
+}
+
+/**
+ * Confirmation form for rebuliding the file_managed table to include type
+ * in rows where there is no type.
+ */
+function media_admin_rebuild_types_form($form, &$form_state) {
+  $total = media_type_invalid_files_count();
+  if ($total == 0) {
+    media_variable_del('show_file_type_rebuild_nag');
+    // @TODO: Make this not sound stupid.
+    drupal_set_message('All files in the system have been assigned types. Media installation complete.');
+    drupal_goto('admin');
+  }
+  $form['total'] = array('#type' => 'value', '#value' => $total);
+  return confirm_form($form, 'Update types for existing files', 'admin/config/media', 'This process is required when installing media on an existing site.  Media needs to scan through existing files and identify the file type. <br/><strong>Update types for ' . $total . ' files?</strogn>');
+}
+
+/**
+ * @see media_admin_rebuild_types_form().
+ */
+function media_admin_rebuild_types_form_submit(&$form, &$form_state) {
+  $total = $form_state['values']['total'];
+
+  $batch = array(
+    'title' => t('Rebuilding type information for ' . $total . ' files'),
+    'operations' => array(
+      array('media_admin_rebuild_types_batch_op', array($total)),
+    ),
+    'finished' => 'media_admin_rebuild_types_batch_complete',
+    'file' => drupal_get_path('module', 'media') . '/media.admin.inc',
+  );
+  batch_set($batch);
+}
+
+/**
+ * Batch operation for fixing the file_managed table for media, adding type values
+ * where no value exists.
+ */
+function media_admin_rebuild_types_batch_op($total, &$context) {
+  $per_run = media_variable_get('media_type_batch_update_per_run', 100);
+  $context['results'] = array_merge($context['results'], media_type_batch_update(FALSE, $per_run));
+  $context['finished'] = count($context['results']) / $total;
+}
+/**
+ * Sets a message informing the user how many file records were updated.
+ */
+function media_admin_rebuild_types_batch_complete($success, $results, $operations) {
+  if ($success) {
+    $message = format_plural(count($results), 'One file identified and given a type.', '@count files identified and given a type.');
+    media_variable_del('show_file_type_rebuild_nag');
+  }
+  drupal_set_message($message);
 }

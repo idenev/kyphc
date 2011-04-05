@@ -1,4 +1,3 @@
-// $Id: media.core.js,v 1.3 2010/06/02 12:12:09 JacobSingh Exp $
 
 /**
  * Creates a namespace.

@@ -1,5 +1,4 @@
 <?php
-// $Id: media.module,v 1.68 2011/01/14 03:25:09 effulgentsia Exp $
 
 /**
  * @file
@@ -59,6 +58,24 @@ function media_help($path,$arg) {
  */
 function media_menu() {
   // For managing different types of media and the fields associated with them.
+  $items['admin/config/media/browser'] = array(
+    'title' => 'Media browser settings',
+    'description' => 'Configure the behavior and display of the media browser.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('media_admin_config_browser'),
+    'access arguments' => array('administer media'),
+    'file' => 'media.admin.inc',
+  );
+  // For managing different types of media and the fields associated with them.
+  $items['admin/config/media/rebuild_types'] = array(
+    'title' => 'Rebuild type information for media',
+    'description' => 'In case there are files in file_managed w/o a type, this function rebuilds them',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('media_admin_rebuild_types_form'),
+    'access arguments' => array('administer media'),
+    'file' => 'media.admin.inc',
+  );
+  // For managing different types of media and the fields associated with them.
   $items['admin/config/media/types'] = array(
     'title' => 'Media Types',
     'description' => 'Manage files used on your site.',
@@ -67,6 +84,7 @@ function media_menu() {
     'file' => 'media.admin.inc',
   );
 
+  // Settings used for determining the type of media a file is.
   $items['admin/config/media/types/manage/%media_type'] = array(
     'title' => 'Manage media',
     'title callback' => 'media_type_page_title',
@@ -84,10 +102,7 @@ function media_menu() {
     'weight' => -1,
   );
 
-  /**
-   * Administrative screens for managing media
-   * @var unknown_type
-   */
+  // Administrative screens for managing media.
   $items['admin/content/media'] = array(
     'title' => 'Media',
     'description' => 'Manage files used on your site.',
@@ -98,6 +113,7 @@ function media_menu() {
     'file' => 'media.admin.inc',
   );
 
+  // Used to import files from a local filesystem into Drupal.
   $items['admin/content/media/import'] = array(
     'title' => 'Import media',
     'description' => 'Import files into your media library.',
@@ -119,6 +135,7 @@ function media_menu() {
     'theme callback' => 'media_dialog_get_theme_name',
   );
 
+  // A testbed to try out the media browser with different launch commands.
   $items['media/browser/testbed'] = array(
     'title' => 'Media Browser test',
     'description' => 'Make it easier to test media browser',
@@ -221,11 +238,7 @@ function media_menu() {
 
   $items['admin/content/media/browser'] = $items['media/browser'];
   $items['admin/content/media/browser']['type'] = MENU_LOCAL_ACTION;
-
-  /**
-   * End-user CRUD screens
-   * @var unknown_type
-   */
+  
   $items['media/js'] = array(
     'page callback' => 'media_preview_ajax',
     'access callback' => 'media_access',
@@ -423,6 +436,15 @@ function media_styles_style_flush($style) {
  * in the URL.
  */
 function media_page_alter(&$page) {
+  // Show a nagging message when the media installation needs to be completed.
+  if (user_access('administer media') && media_variable_get('show_file_type_rebuild_nag')
+    // Prevent form submissions from creating duplicate messages.
+    && ($_SERVER['REQUEST_METHOD'] == 'GET')
+    // Show on all the admin pages, except the batch and the rebuild form.
+    && path_is_admin(current_path()) && (arg(0) != 'batch') && (current_path() != 'admin/config/media/rebuild_types')) {
+    drupal_set_message(t('Media module install is not complete. <a href="@type_rebuild_link">Finish the install</a>.', array('@type_rebuild_link' => url('admin/config/media/rebuild_types'))), 'warning', FALSE);
+  }
+
   if (isset($_GET['render']) && $_GET['render'] == 'media-popup') {
     $page['#theme'] = 'media_dialog_page';
     // temporary fix while awaiting fix for 914786
@@ -791,8 +813,7 @@ function media_library() {
  * @return string
  */
 function media_dialog_get_theme_name() {
-  // Set to empty to get the default theme.
-  return media_variable_get('dialog_get_theme_name');
+  return media_variable_get('dialog_theme', variable_get('admin_theme'));
 }
 
 /**
@@ -967,17 +988,12 @@ function media_save_attached_file($file) {
       media_filter_invalidate_caches($media->fid);
     }
   }
-
-
-
   return $media;
 }
 
 
 /**
  * Implements hook_element_info().
- *
- * Media field... Not sure if this is going to work :)
  */
 function media_element_info() {
   $types = array();
@@ -985,10 +1001,11 @@ function media_element_info() {
     '#input' => TRUE,
     '#process' => array('media_element_process'),
     //'#value_callback' => 'media_element_value',
-    //'#element_validate' => array('file_managed_file_validate'),
+    '#element_validate' => array('media_element_validate'),
     '#theme_wrappers' => array('container'),
     '#progress_indicator' => 'throbber',
     '#extended' => FALSE,
+    '#required' => FALSE,
     '#media_options' => array(
       'global' => array(
         'types' => array(), // Example: array('image', 'audio');
@@ -1018,6 +1035,7 @@ function media_element_process(&$element, &$form_state, $form) {
     '#title' => $element['#title'],
     '#markup' => '',
     '#description' => $element['#description'],
+    '#required' => $element['#required'],
   );
 
   //@TODO: This should be loaded from the JS in case of a failed form submission.
@@ -1030,7 +1048,7 @@ function media_element_process(&$element, &$form_state, $form) {
     '#type' => 'item',
     '#markup' => $markup,
     '#prefix' => '<div class="preview launcher">',
-    '#suffix' => '</div><a class="launcher" href="#">' . t(media_variable_get('field_select_media_text')) . '</a><a class="remove" href="#">' . t(media_variable_get('field_remove_media_text')) . '</a>',
+    '#suffix' => '</div><a class="button launcher" href="#">' . t(media_variable_get('field_select_media_text')) . '</a><a class="button remove" href="#">' . t(media_variable_get('field_remove_media_text')) . '</a>',
   );
 
   /**
@@ -1085,10 +1103,31 @@ function media_element_process(&$element, &$form_state, $form) {
   // All settings would likely apply to all media in a multi-value, but what about passing the existing fid?
 
   module_load_include('inc', 'media', 'media.browser');
-  media_include_browser_js();
+  media_attach_browser_js($element);
 
   return $element;
   // @todo: make this work for file and image fields
+}
+
+/**
+ * Validate media form elements. The file type is validated during the upload process, but this is
+ * necessary in order to respect the #required property.
+ */
+function media_element_validate(&$element, &$form_state) {
+  if ($element['#required']) {
+    $field_name = $element['#field_name'];
+    $lang = $element['#language'];
+
+    $has_value = FALSE;
+    foreach ($form_state['values'][$field_name][$lang] as $value) {
+      if ($value['fid']) {
+        $has_value = TRUE;
+      }
+    }
+    if (!$has_value) {
+      form_error($element, t('%element_title is required.', array('%element_title' => $element['#title'])));
+    }
+  }
 }
 
 /**

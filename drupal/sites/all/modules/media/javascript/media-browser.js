@@ -1,4 +1,3 @@
-// $Id: media-browser.js,v 1.7 2010/09/29 16:25:59 jameselliott Exp $
 
 (function ($) {
 namespace('Drupal.media.browser');

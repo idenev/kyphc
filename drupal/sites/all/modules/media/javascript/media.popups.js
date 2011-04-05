@@ -1,4 +1,3 @@
-// $Id: media.popups.js,v 1.8 2010/09/17 23:36:37 effulgentsia Exp $
 
 /**
  * @file: Popup dialog interfaces for the media project.

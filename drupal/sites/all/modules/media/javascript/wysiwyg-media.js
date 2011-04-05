@@ -1,4 +1,3 @@
-// $Id: wysiwyg-media.js,v 1.11 2010/10/22 21:03:48 jameselliott Exp $
 
 /**
  *  @file

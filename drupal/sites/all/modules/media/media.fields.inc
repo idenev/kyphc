@@ -1,5 +1,4 @@
 <?php
-// $Id: media.fields.inc,v 1.25 2011/01/14 23:30:22 effulgentsia Exp $
 
 /**
  * @file: Provides a "Multimedia asset" field to the fields API

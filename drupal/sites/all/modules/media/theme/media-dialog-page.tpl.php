@@ -1,5 +1,4 @@
 <?php
-// $Id: media-dialog-page.tpl.php,v 1.1 2010/06/10 07:39:04 JacobSingh Exp $
 
 /**
  * @file

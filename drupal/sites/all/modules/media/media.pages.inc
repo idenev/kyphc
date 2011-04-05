@@ -1,5 +1,4 @@
 <?php
-// $Id: media.pages.inc,v 1.29 2011/01/13 01:42:01 effulgentsia Exp $
 
 /**
  * @file

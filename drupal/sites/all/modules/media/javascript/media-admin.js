@@ -1,4 +1,3 @@
-// $Id: media-admin.js,v 1.17 2010/11/29 20:03:11 JacobSingh Exp $
 
 /**
  * @file

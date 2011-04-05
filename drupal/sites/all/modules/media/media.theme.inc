@@ -1,5 +1,4 @@
 <?php
-// $Id: media.theme.inc,v 1.15 2011/01/14 03:25:09 effulgentsia Exp $
 
 /**
  * @file

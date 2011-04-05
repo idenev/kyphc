@@ -1,4 +1,3 @@
-// $Id: media-format-form.js,v 1.6 2010/10/27 03:58:22 JacobSingh Exp $
 
 /**
  *  @file

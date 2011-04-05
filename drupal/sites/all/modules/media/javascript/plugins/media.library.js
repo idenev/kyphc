@@ -1,4 +1,3 @@
-// $Id: media.library.js,v 1.10 2011/01/15 00:41:20 effulgentsia Exp $
 
 (function ($) {
 namespace('Drupal.media.browser');

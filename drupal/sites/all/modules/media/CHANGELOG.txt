@@ -1,4 +1,3 @@
-// $Id: CHANGELOG.txt,v 1.5 2010/04/07 06:29:34 JacobSingh Exp $
 
 CHANGELOG for Media module.
 ===========================

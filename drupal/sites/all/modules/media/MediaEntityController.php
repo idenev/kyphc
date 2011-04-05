@@ -1,5 +1,4 @@
 <?php
-// $Id: MediaEntityController.php,v 1.2 2010/04/07 06:29:34 JacobSingh Exp $
 
 /**
  * Extends DrupalEntityControllerInterface.
