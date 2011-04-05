@@ -1,0 +1,49 @@
+<?php
+function kyphc_taxonomy_nav_block_info() {
+  $blocks = array();
+ 
+  $blocks['info'] = array(
+    'info' => t('KYPHC navigation')
+  );
+ 
+  return $blocks;
+}
+ 
+function kyphc_taxonomy_nav_block_view($delta = ''){
+	$block = array();
+	$content = '';
+	if(arg(0) == 'taxonomy' && arg(1)=='term'){
+		$content = '<ul id="kyphc-left-nav">
+		';
+		
+		$current_term = arg(2);
+		$parents =  taxonomy_get_parents($current_term);
+		if($parents){
+			$parent = array_shift($parents);
+			$siblings = taxonomy_get_children($parent->tid);
+			foreach($siblings AS $child){
+				$content .= '<li'
+					.($child->tid == $current_term?' class="active"':'')
+					.'><a href="/taxonomy/term/'
+					.$child->tid.'"'
+					.($child->tid == $current_term?' class="active"':'')
+					.'>'.$child->name.'</a></li>
+		';
+			}
+		}else{
+			$children = taxonomy_get_children(arg(2));
+			//print_r($children);
+			if($children){
+				foreach($children AS $child){
+					$content .= '<li><a href="/taxonomy/term/'.$child->tid.'">'.$child->name.'</a></li>
+		';
+				}
+			}
+		}	
+		$content .= '
+	</ul>';
+	}
+	$block['subject'] = "KYPHC navigation";
+	$block['content'] = $content;
+	return $block;
+ }

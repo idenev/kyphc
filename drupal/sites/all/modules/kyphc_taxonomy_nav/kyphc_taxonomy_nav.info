@@ -1,0 +1,6 @@
+core          = "7.x"
+;dependencies[] = taxonomy
+description   = "Creates logic for implementing KYPHC navigation."
+name          = "KYPHC Navigation"
+package       = KYPHC
+files[] = kyphc_taxonomy_nav.module

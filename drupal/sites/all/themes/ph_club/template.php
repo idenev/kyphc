@@ -20,13 +20,11 @@ function ph_club_form_alter(&$form, &$form_state, $form_id) {
   }
   if($form_id == 'user_login_block'){
 	/*
-	dsm($form);
-	$form['links'] = array('#markup' => '<span thmr="thmr_7"><div class="item-list"><ul><li class="first"><span thmr="thmr_5"><a href="/user/register" title="Create a new user account.">Create new account</a></span></li> <li class="last"><span thmr="thmr_6"><a href="/user/password" title="Request new password via e-mail.">Request password</a></span></li> </ul></div></span>');
-	*/
+	dsm($form);*/
+	$form['links'] = array('#markup' => '<div id="login_link" style="display: none;"><a href="/user/login">login</a></div><div id="register_link" class="item-list" style="display: none;"><span thmr="thmr_5"><a href="/user/register" title="Create a new user account.">register</a></span></div>');
+	
   }
 } 
-
-
 
 
 
@@ -91,6 +89,35 @@ function ph_club_preprocess_html(&$vars) {
 
     $vars['belatedpng'] = '<!--[if lt IE 7 ]>' . "\n" . '<script src="/' . $path_prefix . '/js/libs/dd_belatedpng.js"></script>' . "\n" . '<script> DD_belatedPNG.fix(\'img, .png_bg\'); </script>' . "\n" . '<![endif]-->';
 }
+
+function ph_club_preprocess(&$variables, $hook) {
+	if($hook == 'block'){
+		
+	}
+}
+
+function ph_club_breadcrumb($variables) {
+  $breadcrumb = $variables['breadcrumb'];
+
+  if (!empty($breadcrumb)) {
+    // Provide a navigational heading to give context for breadcrumb links to
+    // screen-reader users. Make the heading invisible with .element-invisible.
+    $output = '<h2 class="element-invisible">' . t('You are here') . '</h2>';
+	$delimiter = '<span class="breadcrumb-delimiter"> » </span>';
+	$title = drupal_get_title();
+    $output .= '<div class="breadcrumb">' . implode($delimiter, $breadcrumb);
+	if($title != "Search"){
+		$output .= $delimiter.$title;
+	}
+	$output .= '</div>';
+    return $output;
+  }else{
+	  $output = '<h2 class="element-invisible">' . t('You are here') . '</h2>';
+	  $output .= '<div class="breadcrumb">Home</div>';
+	  return $output;
+  }
+}
+
 
 function ph_club_preprocess_node(&$vars) {
   $vars['datetime'] = format_date($vars['created'], 'custom', 'c');
