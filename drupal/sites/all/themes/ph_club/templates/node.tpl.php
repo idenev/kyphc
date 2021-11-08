@@ -16,6 +16,7 @@
       <?php print $user_picture; ?>
       <?php print $submitted; ?>
     </footer>
+    
   <?php endif; ?>
   <div<?php print $content_attributes; ?>>
     <?php
